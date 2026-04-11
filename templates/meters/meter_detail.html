@@ -18,7 +18,7 @@
                     </a>
                     <nav class="header__nav">
                         <a href="/" class="nav__link">счетчики</a>
-                        <a href="/requests.html" class="nav__link">заявки</a>
+                        <a href="/request_list.html" class="nav__link">заявки</a>
                     </nav>
                 </div>
             </div>
@@ -33,11 +33,6 @@
                 <div class="meter-card">
                     <div class="card__image-col">
                         <img id="meter-photo" src="" alt="Фото счетчика" class="meter-photo">
-                        <div class="video-section" id="video-section" style="display: none;">
-                            <video id="meter-video" class="meter-video" autoplay muted loop playsinline>
-                                <source id="video-source" src="" type="video/mp4">
-                            </video>
-                        </div>
                     </div>
 
                     <div class="card__content-col">
@@ -99,9 +94,10 @@
         let lastReading = 0;
 
         // Загрузка данных счетчика
-        fetch(`/api/meters/${meterId}/`)
+        fetch(`http://localhost:8001/api/meters/${meterId}/`)
             .then(response => response.json())
-            .then(data => {
+            .then(result => {
+                const data = result.data;   // ← вот это важно!
                 document.getElementById('meter-address').textContent = data.address;
                 document.getElementById('meter-model').textContent = `${data.meter_model} (№${data.serial_number})`;
                 document.getElementById('meter-type').textContent = data.meter_type === 'HOT' ? 'Горячая вода' : 'Холодная вода';
@@ -111,16 +107,13 @@
                 document.getElementById('meter-id').value = data.id;
                 lastReading = data.last_verified_reading;
 
-                // Устанавливаем минимальное значение
                 const input = document.getElementById('current_reading');
                 input.min = lastReading;
 
-                // Фото
                 if (data.photo_url) {
                     document.getElementById('meter-photo').src = data.photo_url;
                 }
 
-                // Видео
                 if (data.setup_video_url) {
                     document.getElementById('video-section').style.display = 'block';
                     document.getElementById('video-source').src = data.setup_video_url;
@@ -147,7 +140,7 @@
             e.preventDefault();
             const currentReading = document.getElementById('current_reading').value;
 
-            const response = await fetch('/api/add-reading/', {
+            const response = await fetch('http://localhost:8001/api/add-reading/', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

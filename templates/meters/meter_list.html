@@ -10,7 +10,7 @@
 <body>
     <div class="video-background">
         <video autoplay muted loop playsinline class="background-video">
-            <source src="http://localhost:9000/meters/video/video_water.mp4" type="video/mp4">
+            <source src="http://localhost:9002/meters/video/video_water.mp4" type="video/mp4">
         </video>
         <div class="video-overlay"></div>
     </div>
@@ -25,7 +25,7 @@
                     </a>
                     <nav class="header__nav">
                         <a href="/" class="nav__link nav__link--active">счетчики</a>
-                        <a href="/requests.html" class="nav__link">заявки</a>
+                        <a href="/request_list.html" class="nav__link">заявки</a>
                     </nav>
                 </div>
             </div>
@@ -60,10 +60,10 @@
         let allMeters = [];
 
         function loadMeters(searchQuery = '') {
-            fetch('/api/meters/')
+            fetch('http://localhost:8001/api/meters/')
                 .then(response => response.json())
                 .then(data => {
-                    allMeters = data;
+                    allMeters = data.data;
                     let filtered = allMeters;
                     if (searchQuery) {
                         filtered = allMeters.filter(m =>
