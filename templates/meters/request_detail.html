@@ -41,12 +41,14 @@
                             <span class="info-label">Дата завершения:</span>
                             <span class="info-value" id="request-completed">---</span>
                         </div>
+                        <div class="info-row" id="request-comment-row" style="display: none;">
+                            <span class="info-label">Комментарий:</span>
+                            <span class="info-value" id="request-comment">---</span>
+                        </div>
                     </div>
 
                     <h2 class="section-title">Показания счетчиков</h2>
-                    <div id="positions-list" class="request-meters-list">
-                        <!-- позиции загрузятся через JS -->
-                    </div>
+                    <div id="positions-list" class="request-meters-list"></div>
 
                     <div id="totals-section" class="request-totals" style="display: none;">
                         <div class="total-row">
@@ -59,9 +61,7 @@
                         </div>
                     </div>
 
-                    <div id="request-actions" class="request-actions">
-                        <!-- кнопки загрузятся через JS -->
-                    </div>
+                    <div id="request-actions" class="request-actions"></div>
                 </div>
             </div>
         </main>
@@ -71,10 +71,26 @@
         const urlParams = new URLSearchParams(window.location.search);
         const requestId = urlParams.get('id');
 
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
         function loadRequest() {
-            fetch(`/api/requests/${requestId}/`)
+            fetch(`http://localhost:8001/api/requests/${requestId}/`)
                 .then(response => response.json())
-                .then(data => {
+                .then(result => {
+                    const data = result.data;
                     document.getElementById('request-title').textContent = `Заявка №${data.id}`;
 
                     const statusMap = {
@@ -92,83 +108,62 @@
                         document.getElementById('request-completed-row').style.display = 'flex';
                         document.getElementById('request-completed').textContent = data.completed_at;
                     }
+                    if (data.comment) {
+                        document.getElementById('request-comment-row').style.display = 'flex';
+                        document.getElementById('request-comment').textContent = data.comment;
+                    }
 
-                    // Позиции
                     const positionsContainer = document.getElementById('positions-list');
-                    if (data.positions.length === 0) {
+                    if (!data.positions || data.positions.length === 0) {
                         positionsContainer.innerHTML = '<div class="empty-state"><a href="/" class="btn btn-primary">добавить счетчик</a></div>';
                     } else {
                         positionsContainer.innerHTML = data.positions.map(pos => `
                             <div class="request-meter-item">
-                                <div class="meter-address">
-                                    ${pos.water_meter__address} | ${pos.water_meter__meter_type === 'HOT' ? 'ГВС' : 'ХВС'}
-                                </div>
+                                <div class="meter-address">${pos.water_meter__address} | ${pos.water_meter__meter_type === 'HOT' ? 'ГВС' : 'ХВС'}</div>
                                 <div class="meter-readings">
-                                    <span class="reading-item">
-                                        <span class="reading-label">Предыдущие:</span>
-                                        <span class="reading-value">${pos.water_meter__last_verified_reading}</span>
-                                    </span>
-                                    <span class="reading-item">
-                                        <span class="reading-label">Текущие:</span>
-                                        <span class="reading-value">${pos.current_reading}</span>
-                                    </span>
-                                    <span class="reading-item">
-                                        <span class="reading-label">Расход:</span>
-                                        <span class="reading-value highlight">${pos.consumption} м³</span>
-                                    </span>
+                                    <span class="reading-item"><span class="reading-label">Предыдущие:</span><span class="reading-value">${pos.water_meter__last_verified_reading}</span></span>
+                                    <span class="reading-item"><span class="reading-label">Текущие:</span><span class="reading-value">${pos.current_reading}</span></span>
+                                    <span class="reading-item"><span class="reading-label">Расход:</span><span class="reading-value highlight">${pos.consumption} м³</span></span>
                                 </div>
                             </div>
                         `).join('');
                     }
 
-                    // Итоги
                     if (data.total_consumption && data.amount_to_pay) {
                         document.getElementById('totals-section').style.display = 'block';
                         document.getElementById('total-consumption').textContent = `${data.total_consumption} м³`;
                         document.getElementById('amount-to-pay').textContent = `${data.amount_to_pay} ₽`;
                     }
 
-                    // Кнопки действий
                     const actionsContainer = document.getElementById('request-actions');
                     if (data.status === 'draft') {
                         actionsContainer.innerHTML = `
-                            <form action="/api/delete-request/${requestId}/" method="POST" style="display: inline;">
-                                <input type="hidden" name="csrfmiddlewaretoken" value="${getCookie('csrftoken')}">
-                                <button type="submit" class="btn btn-secondary" onclick="return confirm('Удалить черновик заявки?')">удалить черновик</button>
-                            </form>
                             <a href="/" class="btn btn-primary">добавить счетчик</a>
-                            <button id="submit-btn" class="btn btn-success">подать показания</button>
+                            <button id="delete-draft-btn" class="btn btn-secondary">удалить черновик</button>
+                            <button id="submit-draft-btn" class="btn btn-success">подать показания</button>
                         `;
-                        document.getElementById('submit-btn').addEventListener('click', () => {
-                            fetch(`/api/submit-request/${requestId}/`, { method: 'POST', headers: {'X-CSRFToken': getCookie('csrftoken')} })
-                                .then(() => location.reload());
+                        document.getElementById('delete-draft-btn').addEventListener('click', () => {
+                            if (confirm('Удалить черновик заявки?')) {
+                                fetch(`http://localhost:8001/api/delete-request/${requestId}/`, {
+                                    method: 'DELETE',
+                                    headers: { 'X-CSRFToken': getCookie('csrftoken') }
+                                }).then(() => window.location.href = '/request_list.html');
+                            }
                         });
-                    } else if (data.status === 'submitted') {
-                        actionsContainer.innerHTML = '<div class="status-message info">Заявка отправлена.</div>';
-                    } else if (data.status === 'completed') {
-                        actionsContainer.innerHTML = '<div class="status-message success">Заявка завершена.</div>';
-                    } else if (data.status === 'rejected') {
-                        actionsContainer.innerHTML = '<div class="status-message error">Заявка отклонена.</div>';
+                        document.getElementById('submit-draft-btn').addEventListener('click', () => {
+                            fetch(`http://localhost:8001/api/requests/${requestId}/submit-request/`, {
+                                method: 'PUT',
+                                headers: { 'X-CSRFToken': getCookie('csrftoken') }
+                            }).then(() => location.reload());
+                        });
+                    } else {
+                        actionsContainer.innerHTML = '';
                     }
                 });
         }
 
         loadRequest();
 
-        function getCookie(name) {
-            let cookieValue = null;
-            if (document.cookie && document.cookie !== '') {
-                const cookies = document.cookie.split(';');
-                for (let i = 0; i < cookies.length; i++) {
-                    const cookie = cookies[i].trim();
-                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                        break;
-                    }
-                }
-            }
-            return cookieValue;
-        }
     </script>
 </body>
 </html>

@@ -87,17 +87,17 @@
     </div>
 
     <script>
-        // Получаем ID счетчика из URL (?id=123)
+
         const urlParams = new URLSearchParams(window.location.search);
         const meterId = urlParams.get('id');
-
+        const editRequestId = urlParams.get('request_id');
         let lastReading = 0;
 
         // Загрузка данных счетчика
         fetch(`http://localhost:8001/api/meters/${meterId}/`)
             .then(response => response.json())
             .then(result => {
-                const data = result.data;   // ← вот это важно!
+                const data = result.data;
                 document.getElementById('meter-address').textContent = data.address;
                 document.getElementById('meter-model').textContent = `${data.meter_model} (№${data.serial_number})`;
                 document.getElementById('meter-type').textContent = data.meter_type === 'HOT' ? 'Горячая вода' : 'Холодная вода';
@@ -112,12 +112,6 @@
 
                 if (data.photo_url) {
                     document.getElementById('meter-photo').src = data.photo_url;
-                }
-
-                if (data.setup_video_url) {
-                    document.getElementById('video-section').style.display = 'block';
-                    document.getElementById('video-source').src = data.setup_video_url;
-                    document.getElementById('meter-video').load();
                 }
             });
 
@@ -148,15 +142,17 @@
                 },
                 body: JSON.stringify({
                     meter_id: meterId,
-                    current_reading: currentReading
+                    current_reading: currentReading,
+                     request_id: editRequestId
                 })
             });
 
             if (response.ok) {
                 const data = await response.json();
-                window.location.href = `/request_detail.html?id=${data.request_id}`;
+                window.location.href = `/request_detail.html?id=${data.data.request_id}`;
             } else {
-                alert('Ошибка при передаче показаний');
+                const error = await response.json();
+                alert('Ошибка: ' + (error.error || 'Неизвестная ошибка'));
             }
         });
 
