@@ -94,7 +94,7 @@
         let lastReading = 0;
 
         // Загрузка данных счетчика
-        fetch(`http://localhost:8001/api/meters/${meterId}/`)
+        fetch(`/api/meters/${meterId}/`)
             .then(response => response.json())
             .then(result => {
                 const data = result.data;
@@ -134,7 +134,7 @@
             e.preventDefault();
             const currentReading = document.getElementById('current_reading').value;
 
-            const response = await fetch('http://localhost:8001/api/add-reading/', {
+            const response = await fetch('/api/add-reading/', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

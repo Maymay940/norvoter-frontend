@@ -60,7 +60,7 @@
         let allMeters = [];
 
         function loadMeters(searchQuery = '') {
-            fetch('http://localhost:8001/api/meters/')
+            fetch('/api/meters/')
                 .then(response => response.json())
                 .then(data => {
                     allMeters = data.data;

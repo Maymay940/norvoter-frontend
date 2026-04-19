@@ -87,7 +87,7 @@
         }
 
         function loadRequest() {
-            fetch(`http://localhost:8001/api/requests/${requestId}/`)
+            fetch(`/api/requests/${requestId}/`)
                 .then(response => response.json())
                 .then(result => {
                     const data = result.data;
@@ -144,14 +144,14 @@
                         `;
                         document.getElementById('delete-draft-btn').addEventListener('click', () => {
                             if (confirm('Удалить черновик заявки?')) {
-                                fetch(`http://localhost:8001/api/delete-request/${requestId}/`, {
+                                fetch(`/api/delete-request/${requestId}/`, {
                                     method: 'DELETE',
                                     headers: { 'X-CSRFToken': getCookie('csrftoken') }
                                 }).then(() => window.location.href = '/request_list.html');
                             }
                         });
                         document.getElementById('submit-draft-btn').addEventListener('click', () => {
-                            fetch(`http://localhost:8001/api/requests/${requestId}/submit-request/`, {
+                            fetch(`/api/requests/${requestId}/submit-request/`, {
                                 method: 'PUT',
                                 headers: { 'X-CSRFToken': getCookie('csrftoken') }
                             }).then(() => location.reload());
