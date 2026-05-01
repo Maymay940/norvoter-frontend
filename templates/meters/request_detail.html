@@ -70,6 +70,7 @@
     <script>
         const urlParams = new URLSearchParams(window.location.search);
         const requestId = urlParams.get('id');
+        console.log('CSRF token:', getCookie('csrftoken'));
 
         function getCookie(name) {
             let cookieValue = null;
@@ -144,7 +145,7 @@
                         `;
                         document.getElementById('delete-draft-btn').addEventListener('click', () => {
                             if (confirm('Удалить черновик заявки?')) {
-                                fetch(`/api/delete-request/${requestId}/`, {
+                                fetch(`/api/requests/${requestId}/delete/`, {
                                     method: 'DELETE',
                                     headers: { 'X-CSRFToken': getCookie('csrftoken') }
                                 }).then(() => window.location.href = '/request_list.html');
